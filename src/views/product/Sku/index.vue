@@ -31,6 +31,7 @@
                     icon="el-icon-plus"
                     size="mini"
                     title="添加Sku"
+                    @click="addSku(row)"
                   ></el-button>
                   <el-button
                     type="warning"
