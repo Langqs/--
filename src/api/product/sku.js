@@ -67,3 +67,26 @@ export const reqDeleteSpu=(spuId)=>{
         method:'delete'
     })
 }
+
+
+// 获取spu img数据
+export const reqSpuImageList=(spuId)=>{
+    return request({
+        url:`/admin/product/spuImageList/${spuId}`,
+        method:'get'
+    })
+}
+//获取 销售属性的数据
+export const reqSpuSaleAttrList=(spuId)=>{
+    return request({
+        url:`/admin/product/spuSaleAttrList/${spuId}`,
+        method:'get'
+    })
+}
+// 获取平台 属性值的数据
+export const reqAttrInfoList=(category1Id,category2Id,category3Id)=>{
+    return request({
+        url:`/admin/product/attrInfoList/${category1Id}/${category2Id}/${category3Id}`,
+        method:'get'
+    })
+}
