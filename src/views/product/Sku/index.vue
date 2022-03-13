@@ -163,7 +163,65 @@
         </el-form>
       </div>
       <!-- 添加SKU -->
-      <div v-show="isShow==2">添加SKU</div>
+      <div v-show="isShow==2">
+        <el-form ref="form" :model="form" label-width="80px">
+          <el-form-item label="SPU名称">
+            {{sku_Spu.spuName}}
+          </el-form-item>
+          <el-form-item label="SKU名称">
+            <el-input placeholder="SKU名称" v-model="form.skuName"></el-input>
+          </el-form-item>
+          <el-form-item label="价格（元）">
+            <el-input placeholder="价格(元)" v-model="form.money"></el-input>
+          </el-form-item>
+          <el-form-item label="重量(KG)">
+            <el-input placeholder="重量（KG）" v-model="form.kg"></el-input>
+          </el-form-item>
+          <el-form-item label="规格描述">
+            <el-input type="textarea" rows="4" placeholder="规格描述" v-model="form.describe"></el-input>
+          </el-form-item>
+          <el-form-item label="平台属性">
+            <el-form :inline="true" ref="miniform" :model="miniform" label-width="80px">
+              <el-form-item v-for="item in skuAttrInfoList" :key="item.id" :label="item.attrName" style="margin-bottom:10px">
+                <el-select v-model="miniform.screenSize" placeholder="请选择">
+                  <el-option v-for="itemMini in item.attrValueList" :key="itemMini.id" :label="itemMini.valueName" :value="itemMini.valueName">
+                  </el-option>
+                </el-select>
+              </el-form-item>
+            </el-form>
+          </el-form-item>
+          <el-form-item label="销售属性">
+            <el-form :inline="true" ref="form" :model="form.attribute" label-width="80px">
+              <el-form-item v-for="item in skuSaleAttrList" :key="item.id" :label="item.saleAttrName">
+                <el-select v-model="form.attribute.attributeColour" placeholder="请选择">
+                  <el-option v-for="itemMini in item.spuSaleAttrValueList" :key="itemMini.id" :label="itemMini.saleAttrValueName" :value="itemMini.saleAttrValueName">
+                  </el-option>
+                </el-select>
+              </el-form-item>
+            </el-form>
+          </el-form-item>
+          <el-form-item label="图片列表">
+            <el-table :data="skuImageList" style="width: 100%" border>
+              <el-table-column type="selection" label="" width="80"></el-table-column>
+              <el-table-column label="图片" width="width">
+                <template slot-scope="{ row, $index }">
+                  <img :src="row.imgUrl" alt="" style="width: 100px; heigth: 100px" />
+                </template>
+              </el-table-column>
+              <el-table-column prop="imgName" label="名称" width="width"></el-table-column>
+              <el-table-column label="操作" width="width">
+                <template slot-scope="{ row, $index }">
+                  <el-button type="primary">设为默认</el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+          </el-form-item>
+            <el-form-item label="">
+            <el-button type="primary">保存</el-button>
+            <el-button @click="isShow=0">取消</el-button>
+          </el-form-item>
+        </el-form>
+      </div>
     </el-card>
   </div>
 </template>
@@ -179,7 +237,31 @@ export default {
       total: 0, // 数据总数
       list: [],// Spu列表数据
       formValue: {}, //一级二级三级分类id
-      form:{},
+      form:{
+        skuName:'',
+        money:'',
+        kg:'',
+        describe:'',//规格描述
+        attribute:{attributeColour:'',},//销售属性
+      },
+      skuInfo:{
+        "category3Id": 0,
+        "isSale": 0,
+        "price": 0,
+        "skuAttrValueList": [],
+        "skuDefaultImg": "string",
+        "skuDesc": "string",
+        "skuImageList": [],
+        "skuName": "string",
+        "skuSaleAttrValueList": [],
+        "spuId": 0,
+        "tmId": 0,
+        "weight": "string"
+      },
+      miniform:{
+        screenSize:'',//屏幕尺寸
+        wireless:'',//无线通信
+      },
       dialogImageUrl: '',
       dialogVisible: false,
       attrId: '',//收集的 添加按钮时的销售属性
@@ -208,6 +290,11 @@ export default {
       saleAttrList:[], //平台销售属性
       inputVisible: false,//tag标签切换控制
       inputValue:'',//tag输入框的值
+
+      skuImageList:[], //reqSpuImageList 数据
+      skuSaleAttrList:[], //reqSpuSaleAttrList 销售属性数据
+      skuAttrInfoList:[], //reqAttrInfoList 平台 属性值数据
+      sku_Spu:{},
     };
   },
   mounted() {},
@@ -410,6 +497,28 @@ export default {
       }else{
         this.$message.error(result.message)
       }
+    },
+    // 获取spu img数据
+    async addSku(row){
+      console.log(row);
+      this.sku_Spu = row
+      let result = await this.$API.sku.reqSpuImageList(row.id)
+      if (result.code == 200) {
+        this.skuImageList =result.data
+      }
+      //获取 销售属性的数据
+      let result1 = await this.$API.sku.reqSpuSaleAttrList(row.id)
+      if (result1.code ==200) {
+        this.skuSaleAttrList = result1.data
+      }
+      // 获取平台 属性值的数据
+      const {category1Id,category2Id,category3Id} = this.formValue
+      let result2 = await this.$API.sku.reqAttrInfoList(category1Id,category2Id,category3Id)
+      if (result2.code== 200) {
+        this.skuAttrInfoList =result2.data
+      }
+      console.log('pppp',this.skuSaleAttrList);
+      this.isShow = 2
     },
   },
 };
