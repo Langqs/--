@@ -16,6 +16,10 @@ import router from './router'
 import '@/icons' // icon
 import '@/permission' // permission control
 
+//引入echarts，并声明为全局变量
+import * as echarts from "echarts"
+Vue.prototype.$echarts = echarts
+
 //全局组件
 import CategorySelect from '@/components/CategorySelect';
 Vue.component('CategorySelect',CategorySelect)

@@ -45,6 +45,7 @@
                     icon="el-icon-info"
                     size="mini"
                     title="查看当前Spu全部Sku列表"
+                    @click="seeSku(row)"
                   ></el-button>
                   <el-popconfirm style="margin-left:10px" title="确定删除？" @onConfirm="deleteSpu(row)">
                   <el-button type="danger" icon="el-icon-delete" size="mini" title="删除Sku"
@@ -164,46 +165,47 @@
       </div>
       <!-- 添加SKU -->
       <div v-show="isShow==2">
-        <el-form ref="form" :model="form" label-width="80px">
+        <el-form ref="form" :model="skuInfo" label-width="80px">
           <el-form-item label="SPU名称">
-            {{sku_Spu.spuName}}
+            {{skuInfo.spuName}}
           </el-form-item>
           <el-form-item label="SKU名称">
-            <el-input placeholder="SKU名称" v-model="form.skuName"></el-input>
+            <el-input placeholder="SKU名称" v-model="skuInfo.skuName"></el-input>
           </el-form-item>
-          <el-form-item label="价格（元）">
-            <el-input placeholder="价格(元)" v-model="form.money"></el-input>
+          <el-form-item label="价格(元)）">
+            <el-input placeholder="价格(元)" v-model="skuInfo.price"></el-input>
           </el-form-item>
           <el-form-item label="重量(KG)">
-            <el-input placeholder="重量（KG）" v-model="form.kg"></el-input>
+            <el-input placeholder="重量（KG）" v-model="skuInfo.weight"></el-input>
           </el-form-item>
           <el-form-item label="规格描述">
-            <el-input type="textarea" rows="4" placeholder="规格描述" v-model="form.describe"></el-input>
+            <el-input type="textarea" rows="4" placeholder="规格描述" v-model="skuInfo.skuDesc"></el-input>
           </el-form-item>
           <el-form-item label="平台属性">
-            <el-form :inline="true" ref="miniform" :model="miniform" label-width="80px">
+            <el-form :inline="true" ref="miniform" :model="skuInfo" label-width="80px">
               <el-form-item v-for="item in skuAttrInfoList" :key="item.id" :label="item.attrName" style="margin-bottom:10px">
-                <el-select v-model="miniform.screenSize" placeholder="请选择">
-                  <el-option v-for="itemMini in item.attrValueList" :key="itemMini.id" :label="itemMini.valueName" :value="itemMini.valueName">
+                <el-select v-model="item.attrIdAndValueId" value-key="id" placeholder="请选择">
+                  <el-option v-for="itemMini in item.attrValueList" :key="itemMini.id" :label="itemMini.valueName" :value="itemMini">
                   </el-option>
                 </el-select>
               </el-form-item>
             </el-form>
           </el-form-item>
           <el-form-item label="销售属性">
-            <el-form :inline="true" ref="form" :model="form.attribute" label-width="80px">
+            <el-form :inline="true" ref="form" :model="skuInfo" label-width="80px">
               <el-form-item v-for="item in skuSaleAttrList" :key="item.id" :label="item.saleAttrName">
-                <el-select v-model="form.attribute.attributeColour" placeholder="请选择">
-                  <el-option v-for="itemMini in item.spuSaleAttrValueList" :key="itemMini.id" :label="itemMini.saleAttrValueName" :value="itemMini.saleAttrValueName">
+                <el-select v-model="item.attrIdAndValueId" value-key="id" placeholder="请选择">
+                  <el-option v-for="itemMini in item.spuSaleAttrValueList" :key="itemMini.id" :label="itemMini.saleAttrValueName" :value="itemMini">
                   </el-option>
                 </el-select>
               </el-form-item>
             </el-form>
           </el-form-item>
           <el-form-item label="图片列表">
-            <el-table :data="skuImageList" style="width: 100%" border>
-              <el-table-column type="selection" label="" width="80"></el-table-column>
+            <el-table :data="skuImageList" ref="selection" style="width: 100%" border>
+              <el-table-column :selectable="selection" type="selection" label="" width="80"></el-table-column>
               <el-table-column label="图片" width="width">
+                <!-- eslint-disable-next-line -->
                 <template slot-scope="{ row, $index }">
                   <img :src="row.imgUrl" alt="" style="width: 100px; heigth: 100px" />
                 </template>
@@ -211,52 +213,60 @@
               <el-table-column prop="imgName" label="名称" width="width"></el-table-column>
               <el-table-column label="操作" width="width">
                 <template slot-scope="{ row, $index }">
-                  <el-button type="primary">设为默认</el-button>
+                  <el-button :type="row.isDefault==1?'success':'primary'" @click="isDefault(row,$index)">{{row.isDefault==1?'取消默认':'设为默认'}}</el-button>
                 </template>
               </el-table-column>
             </el-table>
           </el-form-item>
             <el-form-item label="">
-            <el-button type="primary">保存</el-button>
+            <el-button type="primary" @click="submitSku">保存</el-button>
             <el-button @click="isShow=0">取消</el-button>
           </el-form-item>
         </el-form>
       </div>
     </el-card>
+    <el-dialog :title="tcTitle + '  的SKU列表'" :visible.sync="dialogTableVisible">
+      <el-table :data="gridData" border v-loading="loading">
+        <el-table-column property="skuName" label="名称" width=""></el-table-column>
+        <el-table-column property="price" label="价格" width="100"></el-table-column>
+        <el-table-column property="weight" label="重量" width="100"></el-table-column>
+        <el-table-column label="默认图片">
+          <template slot-scope="{row}">
+            <img :src="row.skuDefaultImg" alt="" style="width:100px;height:100px">
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-dialog>
   </div>
 </template>
 <script>
-import { logger } from "runjs/lib/common";
 export default {
   name: "Sku",
   data() {
     return {
+      dialogTableVisible: false,//控制弹窗显示与隐藏
+      gridData:{},//弹窗列表数据
+      tcTitle:'',//弹窗title
+      loading: true,
       isShow: 0, // 显示控制
       page: 1, //当前页码
       limit: 5, //展示条数
       total: 0, // 数据总数
       list: [],// Spu列表数据
       formValue: {}, //一级二级三级分类id
-      form:{
-        skuName:'',
-        money:'',
-        kg:'',
-        describe:'',//规格描述
-        attribute:{attributeColour:'',},//销售属性
-      },
       skuInfo:{
-        "category3Id": 0,
-        "isSale": 0,
-        "price": 0,
+        "category3Id": undefined,
+        "isSale": undefined,
+        "price": undefined,
         "skuAttrValueList": [],
-        "skuDefaultImg": "string",
-        "skuDesc": "string",
+        "skuDefaultImg": "",
+        "skuDesc": "",
         "skuImageList": [],
-        "skuName": "string",
+        "skuName": "",
         "skuSaleAttrValueList": [],
-        "spuId": 0,
-        "tmId": 0,
-        "weight": "string"
+        "spuId": undefined,
+        "tmId": undefined,
+        "weight": ""//重量
       },
       miniform:{
         screenSize:'',//屏幕尺寸
@@ -498,10 +508,24 @@ export default {
         this.$message.error(result.message)
       }
     },
-    // 获取spu img数据
+    // 操作列 添加Sku按钮
     async addSku(row){
-      console.log(row);
-      this.sku_Spu = row
+      this.skuInfo={
+        "category3Id": undefined,
+        "isSale": undefined,
+        "price": undefined,
+        "skuAttrValueList": [],
+        "skuDefaultImg": "",
+        "skuDesc": "",
+        "skuImageList": [],
+        "skuName": "",
+        "skuSaleAttrValueList": [],
+        "spuId": undefined,
+        "tmId": undefined,
+        "weight": ""//重量
+      }
+      Object.assign(this.skuInfo,row)
+      // 获取spu img数据
       let result = await this.$API.sku.reqSpuImageList(row.id)
       if (result.code == 200) {
         this.skuImageList =result.data
@@ -517,9 +541,81 @@ export default {
       if (result2.code== 200) {
         this.skuAttrInfoList =result2.data
       }
-      console.log('pppp',this.skuSaleAttrList);
-      this.isShow = 2
+      this.$nextTick(()=>{
+        this.isShow = 2
+      })
+      
     },
+    // 设为默认 按钮
+    isDefault(row){
+      console.log(row);
+      if (row.isDefault == 1) {
+        this.$set(row,'isDefault',0)
+        this.$refs.selection.toggleRowSelection(row,false)
+      }else{
+        this.$set(row,'isDefault',1)
+        this.$refs.selection.toggleRowSelection(row,true)
+      }
+    },
+    // table 选择框禁用
+    selection(row){
+      return false
+    },
+    // 保存按钮事件
+    async submitSku(){
+      //skuAttrValueList,skuSaleAttrValueList
+      //平台属性
+      this.skuAttrInfoList.forEach(item=>{
+        if (item.attrIdAndValueId) {
+          let attrId=item.attrIdAndValueId.attrId
+          let valueId=item.attrIdAndValueId.id
+          this.skuInfo.skuAttrValueList.push({attrId,valueId})
+        }
+      })
+      // 销售属性
+      this.skuSaleAttrList.forEach(item=>{
+        if (item.attrIdAndValueId) {
+          let saleAttrId=item.attrIdAndValueId.baseSaleAttrId
+          let saleAttrValueId=item.attrIdAndValueId.id
+          this.skuInfo.skuSaleAttrValueList.push({saleAttrId,saleAttrValueId})
+        }
+      })
+      // 图片
+      this.skuInfo.skuImageList = this.skuImageList.map(item=>{
+        return {
+          imgName :item.imgName,
+          imgUrl :item.imgUrl,
+          isDefault :item.isDefault,
+          skuId :item.spuId,
+          spuImgId :item.id,
+        }
+      })
+      //提交
+      let result = await this.$API.sku.reqAddSku(this.skuInfo)
+      if (result.code == 200) {
+        this.$message({
+          type:'success',
+          message:'保存成功'
+        })
+        this.isShow =0
+      }else{
+        this.$message.error(result.message)
+      }
+      
+    },
+    // 查看sku数据列表
+    async seeSku(row){
+      this.loading = true
+      
+      this.dialogTableVisible = true
+      this.tcTitle= row.spuName
+      let result= await this.$API.sku.reqSkuList(row.id)
+      if (result.code == 200) {
+        this.gridData = result.data
+      }
+      console.log(this.gridData);
+      this.loading = false
+    }
   },
 };
 </script>

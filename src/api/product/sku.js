@@ -90,3 +90,18 @@ export const reqAttrInfoList=(category1Id,category2Id,category3Id)=>{
         method:'get'
     })
 }
+//添加sku
+export const reqAddSku=(data)=>{
+    return request({
+        url:'/admin/product/saveSkuInfo',
+        data,
+        method:'post'
+    })
+}
+// 获取sku列表数据接口
+export const reqSkuList=(spuId)=>{
+    return request({
+        url:`/admin/product/findBySpuId/${spuId}`,
+        method:'get'
+    })
+}
